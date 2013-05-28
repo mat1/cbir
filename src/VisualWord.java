@@ -1,3 +1,6 @@
+import java.util.LinkedList;
+import java.util.List;
+
 import mpi.cbg.fly.Feature;
 
 
@@ -10,5 +13,11 @@ public class VisualWord {
 	public int	classID;
 	
 	//a placeholder for a class verification value
-	public Object verificationValue;	
+	public Object verificationValue;
+
+	public VisualWord(Feature centroied, int classID) {
+		this.centroied = centroied;
+		this.classID = classID;
+	}
+	
 }
