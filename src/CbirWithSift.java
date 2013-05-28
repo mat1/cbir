@@ -151,6 +151,7 @@ public class CbirWithSift extends JFrame {
 					if (newDistorsion < distorsion) {
 						clusterChanged = true;
 						distorsion = newDistorsion;
+						Arrays.sort(centroides);
 					} else {
 						centroides[centerIndex] = oldCenter;
 					}
