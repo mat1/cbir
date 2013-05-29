@@ -12,6 +12,7 @@ public final class NaiveBayesClassifier implements IClassifier {
 	private final int[] documentCounts;
 	private final int[] totalFeatureCounts;
 	private final int[][] featureCounts;
+	private final double[][] probabilities;
 	
 	private int totalDocuments = 0;
 	
@@ -23,6 +24,7 @@ public final class NaiveBayesClassifier implements IClassifier {
 		this.documentCounts = new int[classes];
 		this.totalFeatureCounts = new int [classes];
 		this.featureCounts = new int [classes][featureCnt];
+		this.probabilities = new double[classes][featureCnt];
 	}
 	
 	@Override
@@ -38,7 +40,8 @@ public final class NaiveBayesClassifier implements IClassifier {
 			classId++;
 		}
 		
-		calculateAPriori();
+		estimateAPriori();
+		estimateFeatureProbabilities();
 	}
 
 	@Override
@@ -52,7 +55,7 @@ public final class NaiveBayesClassifier implements IClassifier {
 			for(int clazz = 0; clazz < classNames.length; clazz++) {
 				final int currentFeature = histogram[i];
 				if(currentFeature != 0) {
-					final double prob = calculateFeatureProbability(clazz, i);
+					final double prob = getEstimatedFeatureProbability(clazz, i);
 					probs[clazz] *= prob*currentFeature;
 				}
 			}
@@ -78,19 +81,31 @@ public final class NaiveBayesClassifier implements IClassifier {
 		}
 	}
 
-	private void calculateAPriori() {
+	private void estimateAPriori() {
 		for(int currentClass = 0; currentClass < classCnt; currentClass++) {
 			aPriori[currentClass] = (float) documentCounts[currentClass] / totalDocuments;
+		}
+	}
+	
+	private void estimateFeatureProbabilities() {
+		for(int i = 0; i < classCnt; i++) {
+			for(int j = 0; j < featureCnt; j++) {
+				probabilities[i][j] = estimateFeatureProbability(i, j);
+			}
 		}
 	}
 	
 	/*
 	 * Calculate P(F = feature | C = clazz) using add one smoothing.
 	 */
-	private double calculateFeatureProbability(int clazz, int feature) {
+	private double estimateFeatureProbability(int clazz, int feature) {
 		return (double)(featureCounts[clazz][feature]+1) / totalFeatureCounts[clazz];
 	}
 
+	private double getEstimatedFeatureProbability(int clazz, int feature) {
+		return probabilities[clazz][feature];
+	}
+	
 	private int getMaximumPropbabilityClass(final double[] probs) {
 		int max = 0;
 		double maxValue = probs[max];
