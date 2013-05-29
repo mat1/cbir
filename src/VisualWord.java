@@ -1,5 +1,5 @@
-import java.util.LinkedList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 import mpi.cbg.fly.Feature;
 
@@ -8,6 +8,8 @@ public class VisualWord {
 	
 	//the Cebir FeatureVector
 	public Feature centroied;
+	
+	public Set<Feature> points = new HashSet<>();
 	
 	//the unique class ID
 	public int	classID;

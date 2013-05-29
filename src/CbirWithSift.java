@@ -42,6 +42,8 @@ import java.util.concurrent.TimeUnit;
 import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 
+import com.sun.org.apache.xerces.internal.impl.dv.ValidatedInfo;
+
 import mpi.cbg.fly.Feature;
 import mpi.cbg.fly.Filter;
 import mpi.cbg.fly.FloatArray2D;
@@ -56,7 +58,7 @@ public class CbirWithSift extends JFrame {
 	List<VisualWord> bagofwords = new Vector<VisualWord>();
 
 	// how many visual words should be classified
-	private static int K = 300;
+	private static int K = 100;
 
 	// the minimum count of members in a "visual-word" class
 	private static int MIN_CLASS_SIZE = 5;
@@ -66,7 +68,7 @@ public class CbirWithSift extends JFrame {
 	private static final String TEST_DIR = "Test";
 	// how many images should be read from the input folders set to max for
 	// final run
-	private static int readImages = 50;
+	private static int readImages = Integer.MAX_VALUE;
 
 	// number of SIFT iterations: more steps will produce more features
 	// default = 4
@@ -119,88 +121,75 @@ public class CbirWithSift extends JFrame {
 			final Feature[] points, int K, int minCount) {
 		System.out.println("Start clustering with: " + points.length
 				+ " pkt to " + K + " classes");
-		
-		// Index of Features which are centers
-		Map<Integer, Integer> centroides = new HashMap<>(K);
-		for (int i = 0; i < K; i++) {
-			centroides.put(i, i);
-		} 
 
-		// Assign every point a center index
-		int[] assignments = new int[points.length];
+		List<VisualWord> centroides = new LinkedList<>();
+		for (int i = 0; i < K; i++) {
+			centroides.add(new VisualWord(points[i], i));
+		}
 
 		boolean clusterChanged = true;
 
 		int it = 0;
 		while (clusterChanged) {
 			clusterChanged = false;
-
-			for (int i = 0; i < points.length; i++) {
-				int index = getNearestCluster(i, centroides, points);
-				assignments[i] = index;
-			}
-
-			float distorsion = calcDistorsion(assignments, centroides, points);
 			
-			for (int point = 0; point < assignments.length; point++) {
-				if (centroides.containsValue(point)) {
-					continue;
-				} else {
-					int centerIndex = assignments[point];
+			for (VisualWord cluster : centroides) {
+				cluster.points.clear();
+			}
+			
+			for (Feature point : points) {
+				VisualWord cluster = getNearestCluster(point, centroides);
+				cluster.points.add(point);
+			}
+			
+			for (VisualWord cluster : centroides){
+				float distorsion = calcDistorsion(cluster);
+				
+				for (Feature point : cluster.points) {
+					Feature oldCenter = cluster.centroied;
+					cluster.centroied = point;
 					
-					int oldCenter = centroides.get(centerIndex);
-					centroides.put(centerIndex, point);
+					float newDistorsion = calcDistorsion(cluster);
 					
-					float newDistorsion = calcDistorsion(assignments, centroides, points);
 					if (newDistorsion < distorsion) {
 						clusterChanged = true;
 						distorsion = newDistorsion;
 					} else {
-						centroides.put(centerIndex, oldCenter);
+						cluster.centroied = oldCenter;
 					}
 				}
 			}
 			
 			System.out.println(++it);
-			System.out.println(distorsion);
 		}
 		
-		List<VisualWord> results = new LinkedList<>();
-		int i = 0;
-		for(int center : centroides.values()) {
-			results.add(new VisualWord(points[center], i));
-			i++;
-		}
-		
-		return results;
+		return centroides;
 	}
 
-	private static int getNearestCluster(int point, Map<Integer, Integer> centroides, Feature[] points) {
-		int index = 0;
+	private static VisualWord getNearestCluster(Feature point, List<VisualWord> centroides) {
+		VisualWord result = null;
 		float minDistance = Float.MAX_VALUE;
 
-		for (Entry<Integer, Integer> entry: centroides.entrySet()) {
-			float distance = getDistance(points, entry.getValue(), point);
+		for (VisualWord cluster : centroides) {
+			float distance = getDistance(point, cluster.centroied);
 			if (distance < minDistance) {
 				minDistance = distance;
-				index = entry.getKey();
+				result = cluster;
 			}
 		}
 
-		return index;
+		return result;
 	}
 	
-	private static float getDistance(Feature[] points, int from, int to) {
-		return points[from].descriptorDistance(points[to]);
+	private static float getDistance(Feature from, Feature to) {
+		return from.descriptorDistance(to);
 	}
 
-	private static float calcDistorsion(int[] assignments, Map<Integer, Integer> centroides, Feature[] points) {
+	private static float calcDistorsion(VisualWord cluster) {
 		float sum = 0;
 
-		for (int point = 0; point < assignments.length; point++) {
-			int centroidesIndex = assignments[point];
-			int center = centroides.get(centroidesIndex);
-			sum += Math.abs(getDistance(points, point, center));
+		for (Feature point : cluster.points) {
+			sum += Math.abs(getDistance(point, cluster.centroied));
 		}
 
 		return sum;
