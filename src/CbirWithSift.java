@@ -75,7 +75,7 @@ public class CbirWithSift extends JFrame {
 	private static int steps = 5;
 
 	// for testing: delay time for showing images in the GUI
-	private static int wait = 1000;
+	private static int wait = 1;
 
 	/**
 	 * 
