@@ -121,9 +121,9 @@ public class CbirWithSift extends JFrame {
 				+ " pkt to " + K + " classes");
 		
 		// Index of Features which are centers
-		int[] centroides = new int[K];
-		for (int i = 0; i < centroides.length; i++) {
-			centroides[i] = i;
+		Map<Integer, Integer> centroides = new HashMap<>(K);
+		for (int i = 0; i < K; i++) {
+			centroides.put(i, i);
 		} 
 
 		// Assign every point a center index
@@ -142,23 +142,21 @@ public class CbirWithSift extends JFrame {
 
 			float distorsion = calcDistorsion(assignments, centroides, points);
 			
-			Arrays.sort(centroides);
 			for (int point = 0; point < assignments.length; point++) {
-				if (Arrays.binarySearch(centroides, point) > 0) {
+				if (centroides.containsValue(point)) {
 					continue;
 				} else {
 					int centerIndex = assignments[point];
 					
-					int oldCenter = centroides[centerIndex];
-					centroides[centerIndex] = point;
+					int oldCenter = centroides.get(centerIndex);
+					centroides.put(centerIndex, point);
 					
 					float newDistorsion = calcDistorsion(assignments, centroides, points);
 					if (newDistorsion < distorsion) {
 						clusterChanged = true;
 						distorsion = newDistorsion;
-						Arrays.sort(centroides);
 					} else {
-						centroides[centerIndex] = oldCenter;
+						centroides.put(centerIndex, oldCenter);
 					}
 				}
 			}
@@ -168,23 +166,24 @@ public class CbirWithSift extends JFrame {
 		}
 		
 		List<VisualWord> results = new LinkedList<>();
-		for(int i = 0; i < centroides.length; i++) {
-			int center = centroides[i];
+		int i = 0;
+		for(int center : centroides.values()) {
 			results.add(new VisualWord(points[center], i));
+			i++;
 		}
 		
 		return results;
 	}
 
-	private static int getNearestCluster(int point, int[] centroides, Feature[] points) {
+	private static int getNearestCluster(int point, Map<Integer, Integer> centroides, Feature[] points) {
 		int index = 0;
 		float minDistance = Float.MAX_VALUE;
 
-		for (int i = 0; i < centroides.length; i++) {
-			float distance = getDistance(points, centroides[i], point);
+		for (Entry<Integer, Integer> entry: centroides.entrySet()) {
+			float distance = getDistance(points, entry.getValue(), point);
 			if (distance < minDistance) {
 				minDistance = distance;
-				index = i;
+				index = entry.getKey();
 			}
 		}
 
@@ -195,12 +194,12 @@ public class CbirWithSift extends JFrame {
 		return points[from].descriptorDistance(points[to]);
 	}
 
-	private static float calcDistorsion(int[] assignments, int[] centroides, Feature[] points) {
+	private static float calcDistorsion(int[] assignments, Map<Integer, Integer> centroides, Feature[] points) {
 		float sum = 0;
 
 		for (int point = 0; point < assignments.length; point++) {
 			int centroidesIndex = assignments[point];
-			int center = centroides[centroidesIndex];
+			int center = centroides.get(centroidesIndex);
 			sum += Math.abs(getDistance(points, point, center));
 		}
 
