@@ -258,7 +258,7 @@ public class CbirWithSift extends JFrame {
 					long startTimeDM = System.currentTimeMillis();
 					setTitle("Learning: decisionModel");
 
-					IClassifier classifier = new StatisticClassifier(K);
+					IClassifier classifier = new NaiveBayesClassifier(imageContentTrainingData.keySet().size(),K);
 					classifier.learn(imageContentTrainingData);
 					long endTimeDM = System.currentTimeMillis();
 
