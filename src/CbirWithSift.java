@@ -66,7 +66,7 @@ public class CbirWithSift extends JFrame {
 	private static final String TEST_DIR = "Test";
 	// how many images should be read from the input folders set to max for
 	// final run
-	private static int readImages = 50;
+	private static int readImages = 1000;
 
 	// number of SIFT iterations: more steps will produce more features
 	// default = 4
@@ -185,7 +185,7 @@ public class CbirWithSift extends JFrame {
 
 		for (int r = 0; r < points.length; r++) {
 			Feature from = points[r];
-			for (int c = 0; c < points.length; c++) {
+			for (int c = r; c < points.length; c++) {
 				if (r == c) {
 					distances[r][c] = 0;
 				} else {
@@ -203,7 +203,7 @@ public class CbirWithSift extends JFrame {
 		float minDistance = Float.MAX_VALUE;
 
 		for (int i = 0; i < centroides.length; i++) {
-			float distance = distances[centroides[i]][point];
+			float distance = getDistance(distances, centroides[i], point);
 			if (distance < minDistance) {
 				minDistance = distance;
 				index = i;
@@ -212,6 +212,14 @@ public class CbirWithSift extends JFrame {
 
 		return index;
 	}
+	
+	private static float getDistance(float[][] distance, int from, int to) {
+		if(distance[from][to] > 0){
+			return distance[from][to];
+		} else {
+			return distance[to][from];
+		}
+	}
 
 	private static float calcDistorsion(int[] assignments, int[] centroides, float[][] distances) {
 		float sum = 0;
@@ -219,7 +227,7 @@ public class CbirWithSift extends JFrame {
 		for (int point = 0; point < assignments.length; point++) {
 			int centroidesIndex = assignments[point];
 			int center = centroides[centroidesIndex];
-			sum += Math.abs(distances[point][center]);
+			sum += Math.abs(getDistance(distances, point, center));
 		}
 
 		return sum;
