@@ -66,7 +66,7 @@ public class CbirWithSift extends JFrame {
 	private static final String TEST_DIR = "Test";
 	// how many images should be read from the input folders set to max for
 	// final run
-	private static int readImages = 1000;
+	private static int readImages = 50;
 
 	// number of SIFT iterations: more steps will produce more features
 	// default = 4
@@ -119,11 +119,7 @@ public class CbirWithSift extends JFrame {
 			final Feature[] points, int K, int minCount) {
 		System.out.println("Start clustering with: " + points.length
 				+ " pkt to " + K + " classes");
-
-		float[][] distances = calcDistanceMatrix(points);
-
-		System.out.println("Distance calculated");
-
+		
 		// Index of Features which are centers
 		int[] centroides = new int[K];
 		for (int i = 0; i < centroides.length; i++) {
@@ -140,11 +136,11 @@ public class CbirWithSift extends JFrame {
 			clusterChanged = false;
 
 			for (int i = 0; i < points.length; i++) {
-				int index = getNearestCluster(i, centroides, distances);
+				int index = getNearestCluster(i, centroides, points);
 				assignments[i] = index;
 			}
 
-			float distorsion = calcDistorsion(assignments, centroides, distances);
+			float distorsion = calcDistorsion(assignments, centroides, points);
 			
 			Arrays.sort(centroides);
 			for (int point = 0; point < assignments.length; point++) {
@@ -156,7 +152,7 @@ public class CbirWithSift extends JFrame {
 					int oldCenter = centroides[centerIndex];
 					centroides[centerIndex] = point;
 					
-					float newDistorsion = calcDistorsion(assignments, centroides, distances);
+					float newDistorsion = calcDistorsion(assignments, centroides, points);
 					if (newDistorsion < distorsion) {
 						clusterChanged = true;
 						distorsion = newDistorsion;
@@ -179,31 +175,13 @@ public class CbirWithSift extends JFrame {
 		
 		return results;
 	}
-	
-	private static float[][] calcDistanceMatrix(Feature[] points) {
-		float[][] distances = new float[points.length][points.length];
 
-		for (int r = 0; r < points.length; r++) {
-			Feature from = points[r];
-			for (int c = r; c < points.length; c++) {
-				if (r == c) {
-					distances[r][c] = 0;
-				} else {
-					distances[r][c] = from.descriptorDistance(points[c]);
-				}
-			}
-		}
-
-		return distances;
-	}
-
-	private static int getNearestCluster(int point, int[] centroides,
-			float[][] distances) {
+	private static int getNearestCluster(int point, int[] centroides, Feature[] points) {
 		int index = 0;
 		float minDistance = Float.MAX_VALUE;
 
 		for (int i = 0; i < centroides.length; i++) {
-			float distance = getDistance(distances, centroides[i], point);
+			float distance = getDistance(points, centroides[i], point);
 			if (distance < minDistance) {
 				minDistance = distance;
 				index = i;
@@ -213,21 +191,17 @@ public class CbirWithSift extends JFrame {
 		return index;
 	}
 	
-	private static float getDistance(float[][] distance, int from, int to) {
-		if(distance[from][to] > 0){
-			return distance[from][to];
-		} else {
-			return distance[to][from];
-		}
+	private static float getDistance(Feature[] points, int from, int to) {
+		return points[from].descriptorDistance(points[to]);
 	}
 
-	private static float calcDistorsion(int[] assignments, int[] centroides, float[][] distances) {
+	private static float calcDistorsion(int[] assignments, int[] centroides, Feature[] points) {
 		float sum = 0;
 
 		for (int point = 0; point < assignments.length; point++) {
 			int centroidesIndex = assignments[point];
 			int center = centroides[centroidesIndex];
-			sum += Math.abs(getDistance(distances, point, center));
+			sum += Math.abs(getDistance(points, point, center));
 		}
 
 		return sum;
