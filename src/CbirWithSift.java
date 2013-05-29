@@ -88,7 +88,16 @@ public class CbirWithSift extends JFrame {
 	 * @return the class ID (0..k) or null if quality is not good enough
 	 */
 	public Integer doClassifyVisualWord(Feature f) {
-		return 0;
+		int classId = 0;
+		float minDistance = Float.MAX_VALUE;
+		for(VisualWord word : bagofwords){
+			float newDistance = word.centroied.descriptorDistance(f);
+			if(newDistance < minDistance) {
+				minDistance = newDistance;
+				classId = word.classID;
+			}
+		}
+		return classId;
 	}
 
 	/**
@@ -163,8 +172,9 @@ public class CbirWithSift extends JFrame {
 		}
 		
 		List<VisualWord> results = new LinkedList<>();
-		for(int center : centroides) {
-			results.add(new VisualWord(points[center], center));
+		for(int i = 0; i < centroides.length; i++) {
+			int center = centroides[i];
+			results.add(new VisualWord(points[center], i));
 		}
 		
 		return results;
@@ -365,7 +375,7 @@ public class CbirWithSift extends JFrame {
 			throws IOException, InterruptedException {
 		LinkedList<IgsImage> images = new LinkedList<IgsImage>();
 
-		File actual = new File("./images/" + folder);
+		File actual = new File("./Images/" + folder);
 
 		int i = 0;
 
