@@ -263,6 +263,7 @@ public class CbirWithSift extends JFrame {
 					setTitle("Learning: decisionModel");
 					
 					List<IClassifier> classifiers = new LinkedList<>();
+					classifiers.add(new DecisionTree(imageContentTrainingData.keySet().size(),K));
 					classifiers.add(new NaiveBayesClassifier(imageContentTrainingData.keySet().size(),K));
 					classifiers.add(new StatisticClassifier(K));
 					
