@@ -11,7 +11,7 @@ import java.util.Vector;
 public class DecisionTree implements IClassifier {
 
 	private static final double LOG2_BASE = Math.log(2);
-	private static final double MIN_GAIN = 0.5;
+	private static final double MIN_GAIN = 0.1;
 	
 	private final String[] classNames;
 	private final int classCount;
@@ -52,6 +52,25 @@ public class DecisionTree implements IClassifier {
 	}
 
  	private DecisionTreeNode pruneTree(DecisionTreeNode tree, double minGain) {
+ 		if(!tree.getLeft().isLeaf()) {
+ 			pruneTree(tree.getLeft(), minGain);
+ 		}
+ 		if(!tree.getRight().isLeaf()) {
+ 			pruneTree(tree.getRight(), minGain);
+ 		}
+ 		
+ 		if(tree.getLeft().isLeaf() && tree.getRight().isLeaf()) {
+ 			List<LabeledHistogram> combined = new ArrayList<>();
+ 			combined.addAll(tree.getLeft().getResults());
+ 			combined.addAll(tree.getRight().getResults());
+ 			
+ 			double delta = entropy(combined) - (entropy(tree.getLeft().getResults()) + entropy(tree.getRight().getResults()) / 2);
+ 			
+ 			if(delta < minGain) {
+ 				tree.toLeaf(combined);
+ 			}
+ 		}
+ 		
  		return tree;
  	}
 	
@@ -170,12 +189,12 @@ public class DecisionTree implements IClassifier {
 	}
 	
 	public static class DecisionTreeNode {
-		private final boolean isLeaf;
+		private boolean isLeaf;
 		private final int feature;
 		private final int value;
-		public final List<LabeledHistogram> results;
-		private final DecisionTreeNode left;
-		private final DecisionTreeNode right;
+		public List<LabeledHistogram> results;
+		private DecisionTreeNode left;
+		private DecisionTreeNode right;
 		
 		private DecisionTreeNode(List<LabeledHistogram> results, DecisionTreeNode left, DecisionTreeNode right, boolean isLeaf, int feature, int value) {
 			this.isLeaf = isLeaf;
@@ -225,6 +244,13 @@ public class DecisionTree implements IClassifier {
 
 		public DecisionTreeNode getRight() {
 			return right;
+		}
+		
+		public void toLeaf(List<LabeledHistogram> results) {
+			isLeaf = true;
+			left = null;
+			right = null;
+			this.results = results;
 		}
 		
 		public static DecisionTreeNode createLeafNode(List<LabeledHistogram> data) {
