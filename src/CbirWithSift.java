@@ -39,6 +39,7 @@ import java.util.concurrent.TimeUnit;
 import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 
+
 import mpi.cbg.fly.Feature;
 import mpi.cbg.fly.Filter;
 import mpi.cbg.fly.FloatArray2D;
@@ -259,14 +260,16 @@ public class CbirWithSift extends JFrame {
 					LinkedList<IgsImage> testImages = readImages(TEST_DIR,
 							readImages);
 					
-					long startTimeDM = System.currentTimeMillis();
+					
 					setTitle("Learning: decisionModel");
 					
 					List<IClassifier> classifiers = new LinkedList<>();
 					classifiers.add(new NaiveBayesClassifier(imageContentTrainingData.keySet().size(),K));
+					classifiers.add(new SVMClassifier(K));
 					classifiers.add(new StatisticClassifier(K));
 					
 					for(IClassifier classifier : classifiers) {
+						long startTimeDM = System.currentTimeMillis();
 						System.out.println("\nClassifying using " + classifier.getClass().getSimpleName());
 						classifier.learn(imageContentTrainingData);
 						long endTimeDM = System.currentTimeMillis();
