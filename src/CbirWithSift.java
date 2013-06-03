@@ -63,7 +63,7 @@ public class CbirWithSift extends JFrame {
 	private static final String TEST_DIR = "Test";
 	// how many images should be read from the input folders set to max for
 	// final run
-	private static int readImages = 500;
+	private static int readImages = Integer.MAX_VALUE;
 
 	// number of SIFT iterations: more steps will produce more features
 	// default = 4
@@ -123,6 +123,8 @@ public class CbirWithSift extends JFrame {
 		for (int i = 0; i < K; i++) {
 			centroides.add(new VisualWord(points[i], i));
 		}
+		
+		
 
 		int it = 0;
 		while (clusterChanged) {
