@@ -71,7 +71,7 @@ public class CbirWithSift extends JFrame {
 
 	// for testing: delay time for showing images in the GUI
 	private static int wait = 1;
-	
+
 	private static volatile boolean clusterChanged = true;
 
 	/**
@@ -89,9 +89,9 @@ public class CbirWithSift extends JFrame {
 	public Integer doClassifyVisualWord(Feature f) {
 		int classId = 0;
 		float minDistance = Float.MAX_VALUE;
-		for(VisualWord word : bagofwords){
+		for (VisualWord word : bagofwords) {
 			float newDistance = word.centroied.descriptorDistance(f);
-			if(newDistance < minDistance) {
+			if (newDistance < minDistance) {
 				minDistance = newDistance;
 				classId = word.classID;
 			}
@@ -123,44 +123,44 @@ public class CbirWithSift extends JFrame {
 		for (int i = 0; i < K; i++) {
 			centroides.add(new VisualWord(points[i], i));
 		}
-		
-		
 
 		int it = 0;
 		while (clusterChanged) {
 			clusterChanged = false;
-			
-			ExecutorService executor = Executors.newFixedThreadPool(
-					Runtime.getRuntime().availableProcessors());
-			
+
+			ExecutorService executor = Executors.newFixedThreadPool(Runtime
+					.getRuntime().availableProcessors());
+
 			for (VisualWord cluster : centroides) {
 				cluster.points.clear();
 			}
-			
+
 			for (Feature point : points) {
 				executor.execute(new RelocateCenterRunnable(point, centroides));
 			}
-			
+
 			executor.shutdown();
-			while(!executor.isTerminated()){ /* Busy waiting */}
-			
-			executor = Executors.newFixedThreadPool(
-					Runtime.getRuntime().availableProcessors());
-			for (VisualWord cluster : centroides){
+			while (!executor.isTerminated()) { /* Busy waiting */
+			}
+
+			executor = Executors.newFixedThreadPool(Runtime.getRuntime()
+					.availableProcessors());
+			for (VisualWord cluster : centroides) {
 				executor.execute(new ClusterRunnable(cluster));
 			}
-			
+
 			executor.shutdown();
-			while(!executor.isTerminated()){ /* Busy waiting */}
-			
+			while (!executor.isTerminated()) { /* Busy waiting */
+			}
+
 			System.out.println(++it);
 		}
-		
+
 		return centroides;
 	}
-	
+
 	private static class RelocateCenterRunnable implements Runnable {
-		
+
 		Feature point;
 		List<VisualWord> centroides;
 
@@ -168,18 +168,18 @@ public class CbirWithSift extends JFrame {
 			this.point = point;
 			this.centroides = centroides;
 		}
-		
+
 		@Override
 		public void run() {
 			VisualWord cluster = getNearestCluster(point, centroides);
 			cluster.points.add(point);
 		}
 	}
-	
+
 	private static class ClusterRunnable implements Runnable {
-		
+
 		VisualWord cluster;
-		
+
 		public ClusterRunnable(VisualWord cluster) {
 			this.cluster = cluster;
 		}
@@ -187,13 +187,13 @@ public class CbirWithSift extends JFrame {
 		@Override
 		public void run() {
 			float distorsion = calcDistorsion(cluster);
-			
+
 			for (Feature point : cluster.points) {
 				Feature oldCenter = cluster.centroied;
 				cluster.centroied = point;
-				
+
 				float newDistorsion = calcDistorsion(cluster);
-				
+
 				if (newDistorsion < distorsion) {
 					clusterChanged = true;
 					distorsion = newDistorsion;
@@ -202,10 +202,11 @@ public class CbirWithSift extends JFrame {
 				}
 			}
 		}
-		
+
 	}
 
-	private static VisualWord getNearestCluster(Feature point, List<VisualWord> centroides) {
+	private static VisualWord getNearestCluster(Feature point,
+			List<VisualWord> centroides) {
 		VisualWord result = null;
 		float minDistance = Float.MAX_VALUE;
 
@@ -219,7 +220,7 @@ public class CbirWithSift extends JFrame {
 
 		return result;
 	}
-	
+
 	private static float getDistance(Feature from, Feature to) {
 		return from.descriptorDistance(to);
 	}
@@ -299,77 +300,68 @@ public class CbirWithSift extends JFrame {
 						Thread.sleep(wait);
 					}
 
+					long startTimeDM = System.currentTimeMillis();
+					setTitle("Learning: decisionModel");
+
+					IClassifier classifier = new SVMClassifier(K);
+					classifier.learn(imageContentTrainingData);
+					long endTimeDM = System.currentTimeMillis();
+
 					setTitle("Testing: readData");
 					LinkedList<IgsImage> testImages = readImages(TEST_DIR,
 							readImages);
-					
-					
-					setTitle("Learning: decisionModel");
-					
-					List<IClassifier> classifiers = new LinkedList<>();
-					classifiers.add(new NaiveBayesClassifier(imageContentTrainingData.keySet().size(),K));
-					classifiers.add(new SVMClassifier(K));
-					classifiers.add(new StatisticClassifier(K));
-					
-					for(IClassifier classifier : classifiers) {
-						long startTimeDM = System.currentTimeMillis();
-						System.out.println("\nClassifying using " + classifier.getClass().getSimpleName());
-						classifier.learn(imageContentTrainingData);
-						long endTimeDM = System.currentTimeMillis();
-	
-						
-	
-						long startTime = System.currentTimeMillis();
-	
-						Map<String, Integer> classStat = new HashMap<String, Integer>();
-						int total = testImages.size();
-						int success = 0;
-						setTitle("Verify: test data");
-	
-						// create the VisiualWordHistograms for each test image and
-						// classify it
-						for (IgsImage i : testImages) {
-							int[] ImageVisualWordHistogram = new int[K];
-	
-							for (Feature f : i.features) {
-								Integer wordClass = doClassifyVisualWord(f);
-								if (wordClass != null)
-									ImageVisualWordHistogram[wordClass.intValue()]++;
-							}
-	
-							i.classifiedName = classifier
-									.classify(ImageVisualWordHistogram);
-							if (classStat.containsKey(i.classifiedName)) {
-								classStat.put(i.classifiedName,
-										classStat.get(i.classifiedName) + 1);
-							} else {
-								classStat.put(i.classifiedName, 1);
-							}
-	
-							if (i.isClassificationCorect())
-								success++;
-	
-							cur_image = i;
-							repaint();
-							Thread.sleep(wait);
+
+					long startTime = System.currentTimeMillis();
+
+					Map<String, Integer> classStat = new HashMap<String, Integer>();
+					int total = testImages.size();
+					int success = 0;
+					setTitle("Verify: test data");
+
+					// create the VisiualWordHistograms for each test image and
+					// classify it
+					for (IgsImage i : testImages) {
+						int[] ImageVisualWordHistogram = new int[K];
+
+						for (Feature f : i.features) {
+							Integer wordClass = doClassifyVisualWord(f);
+							if (wordClass != null)
+								ImageVisualWordHistogram[wordClass.intValue()]++;
 						}
-	
-						long endTime = System.currentTimeMillis();
-	
-						System.out.println("Verified "
-								+ (success / (double) testImages.size()) * 100
-								+ "% in " + (endTime - startTime) + "ms");
-						System.out.println("Learned " + K + " Visual Words in: "
-								+ (endTimeVW - startTimeVW) + "ms!");
-						System.out.println("Learned the image classification in: "
-								+ (endTimeDM - startTimeDM) + "ms");
-	
-						System.out.println();
-						for (Entry<String, Integer> e : classStat.entrySet()) {
-							System.out.println("Classified " + (100 * e.getValue())
-									/ ((double) total) + "% as " + e.getKey() + ".");
+
+						i.classifiedName = classifier
+								.classify(ImageVisualWordHistogram);
+						if (classStat.containsKey(i.classifiedName)) {
+							classStat.put(i.classifiedName,
+									classStat.get(i.classifiedName) + 1);
+						} else {
+							classStat.put(i.classifiedName, 1);
 						}
+
+						if (i.isClassificationCorect())
+							success++;
+
+						cur_image = i;
+						repaint();
+						Thread.sleep(wait);
 					}
+
+					long endTime = System.currentTimeMillis();
+
+					System.out.println("Verified "
+							+ (success / (double) testImages.size()) * 100
+							+ "% in " + (endTime - startTime) + "ms");
+					System.out.println("Learned " + K + " Visual Words in: "
+							+ (endTimeVW - startTimeVW) + "ms!");
+					System.out.println("Learned the image classification in: "
+							+ (endTimeDM - startTimeDM) + "ms");
+
+					System.out.println();
+					for (Entry<String, Integer> e : classStat.entrySet()) {
+						System.out.println("Classified " + (100 * e.getValue())
+								/ ((double) total) + "% as " + e.getKey() + ".");
+					}
+
 				} catch (Exception _e) {
 					_e.printStackTrace();
 				}
@@ -393,7 +385,7 @@ public class CbirWithSift extends JFrame {
 			throws IOException, InterruptedException {
 		LinkedList<IgsImage> images = new LinkedList<IgsImage>();
 
-		File actual = new File("./Images/" + folder);
+		File actual = new File("./images/" + folder);
 
 		int i = 0;
 
@@ -409,7 +401,7 @@ public class CbirWithSift extends JFrame {
 		}
 
 		int p = Runtime.getRuntime().availableProcessors();
-		System.out.println("Started feature extraction using " + p + " threads.");
+		System.out.println("Pool with " + p + " Threads created.");
 		ExecutorService pool = Executors.newFixedThreadPool(p);
 		LinkedList<Future<IgsImage>> futures = new LinkedList<Future<IgsImage>>();
 
@@ -533,12 +525,19 @@ public class CbirWithSift extends JFrame {
 
 		for (int y = 0; y < image.getHeight(); y++) {
 			for (int x = 0; x < image.getWidth(); x++) {
+
 				int rgbV = image.getRGB(x, y);
+
 				int b = rgbV & 0xff;
+
 				rgbV = rgbV >> 8;
+
 				int g = rgbV & 0xff;
+
 				rgbV = rgbV >> 8;
+
 				int r = rgbV & 0xff;
+
 				image_float.data[count++] = 0.3f * r + 0.6f * g + 0.1f * b;
 			}
 		}
@@ -563,14 +562,14 @@ public class CbirWithSift extends JFrame {
 		fa = Filter.computeGaussianFastMirror(fa,
 				(float) Math.sqrt(initial_sigma * initial_sigma - 0.25));
 
-//		long start_time = System.currentTimeMillis();
+		long start_time = System.currentTimeMillis();
 
 		sift.init(fa, steps, initial_sigma, min_size, max_size);
 		_features = sift.run(max_size);
 
-//		System.out.println("processing SIFT took "
-//				+ (System.currentTimeMillis() - start_time) + "ms to find \t"
-//				+ _features.size() + " features");
+		System.out.println("processing SIFT took "
+				+ (System.currentTimeMillis() - start_time) + "ms to find \t"
+				+ _features.size() + " features");
 
 		return _features;
 	}
