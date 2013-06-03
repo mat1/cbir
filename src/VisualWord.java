@@ -1,3 +1,4 @@
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -9,7 +10,7 @@ public class VisualWord {
 	//the Cebir FeatureVector
 	public Feature centroied;
 	
-	public Set<Feature> points = new HashSet<>();
+	public Set<Feature> points = Collections.synchronizedSet(new HashSet<Feature>());
 	
 	//the unique class ID
 	public int	classID;

@@ -39,7 +39,6 @@ import java.util.concurrent.TimeUnit;
 import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 
-
 import mpi.cbg.fly.Feature;
 import mpi.cbg.fly.Filter;
 import mpi.cbg.fly.FloatArray2D;
@@ -64,7 +63,7 @@ public class CbirWithSift extends JFrame {
 	private static final String TEST_DIR = "Test";
 	// how many images should be read from the input folders set to max for
 	// final run
-	private static int readImages = Integer.MAX_VALUE;
+	private static int readImages = 500;
 
 	// number of SIFT iterations: more steps will produce more features
 	// default = 4
@@ -72,6 +71,8 @@ public class CbirWithSift extends JFrame {
 
 	// for testing: delay time for showing images in the GUI
 	private static int wait = 1;
+	
+	private static volatile boolean clusterChanged = true;
 
 	/**
 	 * 
@@ -122,8 +123,9 @@ public class CbirWithSift extends JFrame {
 		for (int i = 0; i < K; i++) {
 			centroides.add(new VisualWord(points[i], i));
 		}
-
-		boolean clusterChanged = true;
+		
+		ExecutorService executor = Executors.newFixedThreadPool(
+				Runtime.getRuntime().availableProcessors());
 
 		int it = 0;
 		while (clusterChanged) {
@@ -134,32 +136,71 @@ public class CbirWithSift extends JFrame {
 			}
 			
 			for (Feature point : points) {
-				VisualWord cluster = getNearestCluster(point, centroides);
-				cluster.points.add(point);
+				executor.execute(new RelocateCenterRunnable(point, centroides));
 			}
 			
+			executor.shutdown();
+			while(!executor.isTerminated()){ /* Busy waiting */}
+			
+			executor = Executors.newFixedThreadPool(
+					Runtime.getRuntime().availableProcessors());
 			for (VisualWord cluster : centroides){
-				float distorsion = calcDistorsion(cluster);
-				
-				for (Feature point : cluster.points) {
-					Feature oldCenter = cluster.centroied;
-					cluster.centroied = point;
-					
-					float newDistorsion = calcDistorsion(cluster);
-					
-					if (newDistorsion < distorsion) {
-						clusterChanged = true;
-						distorsion = newDistorsion;
-					} else {
-						cluster.centroied = oldCenter;
-					}
-				}
+				executor.execute(new ClusterRunnable(cluster));
 			}
+			
+			executor.shutdown();
+			while(!executor.isTerminated()){ /* Busy waiting */}
 			
 			System.out.println(++it);
 		}
 		
 		return centroides;
+	}
+	
+	private static class RelocateCenterRunnable implements Runnable {
+		
+		Feature point;
+		List<VisualWord> centroides;
+
+		public RelocateCenterRunnable(Feature point, List<VisualWord> centroides) {
+			this.point = point;
+			this.centroides = centroides;
+		}
+		
+		@Override
+		public void run() {
+			VisualWord cluster = getNearestCluster(point, centroides);
+			cluster.points.add(point);
+		}
+	}
+	
+	private static class ClusterRunnable implements Runnable {
+		
+		VisualWord cluster;
+		
+		public ClusterRunnable(VisualWord cluster) {
+			this.cluster = cluster;
+		}
+
+		@Override
+		public void run() {
+			float distorsion = calcDistorsion(cluster);
+			
+			for (Feature point : cluster.points) {
+				Feature oldCenter = cluster.centroied;
+				cluster.centroied = point;
+				
+				float newDistorsion = calcDistorsion(cluster);
+				
+				if (newDistorsion < distorsion) {
+					clusterChanged = true;
+					distorsion = newDistorsion;
+				} else {
+					cluster.centroied = oldCenter;
+				}
+			}
+		}
+		
 	}
 
 	private static VisualWord getNearestCluster(Feature point, List<VisualWord> centroides) {
