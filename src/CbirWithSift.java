@@ -123,13 +123,13 @@ public class CbirWithSift extends JFrame {
 		for (int i = 0; i < K; i++) {
 			centroides.add(new VisualWord(points[i], i));
 		}
-		
-		ExecutorService executor = Executors.newFixedThreadPool(
-				Runtime.getRuntime().availableProcessors());
 
 		int it = 0;
 		while (clusterChanged) {
 			clusterChanged = false;
+			
+			ExecutorService executor = Executors.newFixedThreadPool(
+					Runtime.getRuntime().availableProcessors());
 			
 			for (VisualWord cluster : centroides) {
 				cluster.points.clear();
