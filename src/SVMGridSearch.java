@@ -66,8 +66,8 @@ public class SVMGridSearch {
 				}
 
 				if (maxAccuracy >= ACCURACY_TRHESHOLD || iterations >= MAX_ITERATIONS) {
-					System.out.println("Max acc: " + maxAccuracy);
-					System.out.println("Iterations: " + iterations);
+//					System.out.println("Max acc: " + maxAccuracy);
+//					System.out.println("Iterations: " + iterations);
 					
 					prob.l = oldLength;
 					return result;

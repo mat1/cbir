@@ -166,8 +166,8 @@ public class SVMClassifier implements IClassifier {
 		param.C = params[0];
 		param.gamma = params[1];
 		
-		System.out.println("C : " + param.C);
-		System.out.println("Gamma : " + param.gamma);
+//		System.out.println("C : " + param.C);
+//		System.out.println("Gamma : " + param.gamma);
 	}
 	
 	private svm_parameter getDefaultParameters() {
